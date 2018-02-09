@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8"> 
+  </head>
+</html>
+
+<head>
+	<title> Tetris </title>
+	<style>
+		#board {
+			display: block;
+			border: 5px solid blue;
+			background: white;
+		}
+		#lines {
+			display: block;
+		}
+	</style>
+</head>
+
+<body>
+	<span id="score">Lines Cleared: 0</span>
+	<canvas id="board"></canvas>
+	<script>
+		var canvas = document.getElementById("board");
+		var ctx = canvas.getContext("2d");
+		var gameOver = false;
+		var rows = 20;
+		var cols = 10;
+		var blockSize = 24;
+		var linesCleared = 0;
+		var interval = 500;
+		canvas.width = cols * blockSize;
+		canvas.height = rows * blockSize;
+		var startTime = Date.now();
+		var score = document.getElementById('score');
+		var board = [];
+		for (var r = 0; r < rows; r++) {
+			board[r] = [];
+			for (var c = 0; c < cols; c++) {
+				board[r][c] = 0;
+				ctx.fillStyle = "black";
+				ctx.fillRect(c*blockSize, r*blockSize, blockSize, blockSize);
+			}
+		}
+
+		var I = [
+			[
+				[0, 0, 0, 0],
+				[1, 1, 1, 1],
+				[0, 0, 0, 0],
+				[0, 0, 0, 0],
+			],
+			[
+				[0, 0, 1, 0],
+				[0, 0, 1, 0],
+				[0, 0, 1, 0],
+				[0, 0, 1, 0],
+			],
+			[
+				[0, 0, 0, 0],
+				[0, 0, 0, 0],
+				[1, 1, 1, 1],
+				[0, 0, 0, 0],
+			],
+			[
+				[0, 1, 0, 0],
+				[0, 1, 0, 0],
+				[0, 1, 0, 0],
+				[0, 1, 0, 0],
+			]
+		];
+
+		var J = [
+			[
+				[1, 0, 0],
+				[1, 1, 1],
+				[0, 0, 0]
+			],
+			[
+				[0, 1, 1],
+				[0, 1, 0],
+				[0, 1, 0]
+			],
+			[
+				[0, 0, 0],
+				[1, 1, 1],
+				[0, 0, 1]
+			],
+			[
+				[0, 1, 0],
+				[0, 1, 0],
+				[1, 1, 0]
+			]
+		];
+
+		var L = [
+			[
+				[0, 0, 1],
+				[1, 1, 1],
+				[0, 0, 0]
+			],
+			[
+				[0, 1, 0],
+				[0, 1, 0],
+				[0, 1, 1]
+			],
+			[
+				[0, 0, 0],
+				[1, 1, 1],
+				[1, 0, 0]
+			],
+			[
+				[1, 1, 0],
+				[0, 1, 0],
+				[0, 1, 0]
+			]
+		];
+
+		var O = [
+			[
+				[1, 1],
+				[1, 1],
+			]
+		];
+
+		var S = [
+			[
+				[0, 1, 1],
+				[1, 1, 0],
+				[0, 0, 0]
+			],
+			[
+				[0, 1, 0],
+				[0, 1, 1],
+				[0, 0, 1]
+			],
+			[
+				[0, 0, 0],
+				[0, 1, 1],
+				[1, 1, 0]
+			],
+			[
+				[1, 0, 0],
+				[1, 1, 0],
+				[0, 1, 0]
+			]
+		];
+
+		var T = [
+			[
+				[0, 1, 0],
+				[1, 1, 1],
+				[0, 0, 0]
+			],
+			[
+				[0, 1, 0],
+				[0, 1, 1],
+				[0, 1, 0]
+			],
+			[
+				[0, 0, 0],
+				[1, 1, 1],
+				[0, 1, 0]
+			],
+			[
+				[0, 1, 0],
+				[1, 1, 0],
+				[0, 1, 0]
+			]
+		];
+
+		var Z = [
+			[
+				[1, 1, 0],
+				[0, 1, 1],
+				[0, 0, 0]
+			],
+			[
+				[0, 0, 1],
+				[0, 1, 1],
+				[0, 1, 0]
+			],
+			[
+				[0, 0, 0],
+				[1, 1, 0],
+				[0, 1, 1]
+			],
+			[
+				[0, 1, 0],
+				[1, 1, 0],
+				[1, 0, 0]
+			]
+		];
+
+		var pieces = [
+			[I, "cyan"],
+			[J, "blue"],
+			[L, "orange"],
+			[O, "yellow"],
+			[S, "green"],
+			[T, "purple"],
+			[Z, "red"]
+		];
+
+		var piece = null;
+
+		function drawSquare(y, x) {
+			ctx.fillRect(y*blockSize, x*blockSize, blockSize, blockSize);
+			ctx.strokeStyle = "black";
+			ctx.strokeRect(y*blockSize, x*blockSize, blockSize, blockSize);
+		}
+
+		function drawBoard() {
+			for (var r = 0; r < rows; r++) {
+				for (var c = 0; c < cols; c++) {
+					if (board[r][c] != 0) {
+						ctx.fillStyle = board[r][c];
+						drawSquare(c, r);
+					} else {
+						ctx.fillStyle = "black";
+						drawSquare(c, r);
+					}
+				}
+			}
+		}
+
+		function newPiece() {
+			var p = pieces[Math.floor(Math.random() * pieces.length)];
+			return new Piece(p[0], p[1]);
+		}
+
+		function Piece(positions, colour) {
+			this.currPosition = positions[0];
+			this.positions = positions;
+			this.count = 0;
+			this.colour = colour;
+			this.x = Math.floor(Math.random() * (cols-3));
+			this.y = -2;
+		}
+
+		Piece.prototype.updateState = function(colour) {
+			var pos = this.currPosition;
+			ctx.fillStyle = colour;
+			for (var r = 0; r < pos.length; r++) {
+				for (var c = 0; c < pos.length; c++) {
+					if (pos[r][c] != 0) {
+						drawSquare(r + this.x, c + this.y);
+					}
+				}
+			}
+		}
+
+		Piece.prototype.draw = function() {
+			this.updateState(this.colour);
+		}
+
+		Piece.prototype.undraw = function() {
+			this.updateState("black");
+		}
+
+		Piece.prototype.isValid = function(dx, dy) {
+			for (var r = 0; r < this.currPosition.length; r++) {
+				for (var c = 0; c < this.currPosition.length; c++) {
+					if (this.currPosition[r][c] == 0) {
+						continue;
+					}
+					var xPos = this.x + r + dx;
+					var yPos = this.y + c + dy;
+					if (yPos < 0) {
+						// Ignore if piece is above the board
+						continue;
+					} else if (xPos < 0 || xPos >= cols || yPos >= rows || board[yPos][xPos] != 0) {
+						return false;
+					}
+				}
+			}
+			return true;
+		}
+
+		Piece.prototype.moveDown = function() {
+			if (this.isValid(0,1)) {
+				this.undraw();
+				this.y++;
+				this.draw();
+			} else {
+				this.lock();
+			}
+		}
+
+		Piece.prototype.moveLeft = function() {
+			if (this.isValid(-1,0)) {
+				this.undraw();
+				this.x--;
+				this.draw();
+			}
+		}
+
+		Piece.prototype.moveRight = function() {
+			if (this.isValid(1,0)) {
+				this.undraw();
+				this.x++;
+				this.draw();
+			}
+		}
+
+		Piece.prototype.rotate = function() {
+			this.undraw();
+			var currCount = this.count;
+			var valid = false;
+			this.count = (this.count + 1) % this.positions.length;
+			this.currPosition = this.positions[this.count];
+			if (this.isValid(0,0)) {
+				valid = true;
+			} else {
+				for (var i = 0; i < 6; i++) {
+					// Brute force possible positions of piece
+					if (i < 3) {
+						// Attempt to move right 1-3 tiles
+						if (this.isValid(i+1, 0)) {
+							this.x += (i + 1);
+							valid = true;
+							break;
+						}
+					} else {
+						// Attempt to move left 1-3 tiles
+						if (this.isValid(2-i, 0)) {
+							this.x += (2 - i);
+							valid = true;
+							break;
+						}
+					}
+				}
+			}
+			if (!valid) {
+				this.count = currCount;
+				this.currPosition = this.positions[this.count];
+			}
+			this.draw();
+		}
+
+		Piece.prototype.lock = function() {
+			for (var r = 0; r < this.currPosition.length; r++) {
+				for (var c = 0; c < this.currPosition.length; c++) {
+					if (this.currPosition[r][c] == 0) {
+						continue;
+					}
+
+					if (this.y + c < 0) {
+						gameOver = true;
+						alert("Game over!");
+						return;
+					} else {
+						board[this.y + c][this.x + r] = this.colour;
+					}
+				}
+			}		
+			var lines = 0;
+			for (var r = 0; r < rows; r++) {
+				var isComplete = true;
+				for (var c = 0; c < cols; c++) {
+					// Checks if entire row is complete
+					isComplete = isComplete && (board[r][c] != 0);
+				}
+				if (isComplete) {
+					for (var i = r; i >= 1; i--) {
+						for (var c = 0; c < cols; c++) {
+							board[i][c] = board[i-1][c];
+						}
+					}
+					for (var c = 0; c < cols; c++) {
+						board[0][c] = 0;
+					}
+					lines++;
+				}
+			}
+			if (lines > 0) {
+				linesCleared += lines;
+				drawBoard();
+				score.textContent = "Lines Cleared: " + linesCleared;
+			}
+			interval = Math.max(interval - 5, 100);
+			piece = newPiece();
+		}
+
+		function main() {
+			var currTime = Date.now();
+			if (currTime - startTime > interval) {
+				startTime = currTime;
+				piece.moveDown();
+			}
+
+			if (!gameOver) {
+				requestAnimationFrame(main);
+			}
+		}
+
+		document.body.addEventListener("keydown", function (e) {
+			if (!gameOver) {
+				switch(e.keyCode) {
+					case 38: 
+					// up
+					piece.rotate();
+					break;
+					case 40:
+					// down
+					startTime = Date.now();
+					piece.moveDown();
+					break;
+					case 37: 
+					// left
+					piece.moveLeft();
+					break;
+					case 39: 
+					// right
+					piece.moveRight();
+					break;
+				}
+			}
+		}, false);
+
+		piece = newPiece();
+		main();
+	</script>
+</body>
+
+</html>
